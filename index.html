@@ -358,7 +358,6 @@
       const isCrit = perc <= 10 && !isHistory;
       const lastSeenAt = getDeviceLastSeenAt(data);
       const lastUpdateLabel = lastSeenAt ? new Date(lastSeenAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '--';
-      const offlineAgeMs = lastSeenAt ? (nowTick - lastSeenAt) : Infinity;
       const isOnline = !isHistory && isDeviceOnlineNow(data, nowTick);
       const isOffline = !isHistory && !isOnline;
       const displayName = data?.patientName || `Room ${data?.room || '-'} - Bed ${data?.bed || '-'}`;
@@ -381,7 +380,6 @@
                       {isOnline ? 'Online' : 'Offline'}
                     </span>
                   )}
-                  {isOffline && <span className="bg-amber-50 px-2 py-1 rounded-md border border-amber-100 text-amber-700 shrink-0"><i className="fas fa-wifi-slash mr-1 text-amber-500"></i> Offline</span>}
                 </div>
               </div>
               <div className="bg-slate-50 border border-slate-200 text-slate-800 rounded-lg px-2.5 py-1.5 text-center shadow-sm shrink-0">
