@@ -111,6 +111,7 @@
     const INFUSION_DURATION_MS = 6 * 60 * 60 * 1000;
     const ALERT_LEVELS = [75, 50, 25, 10, 5, 2];
     const DEFAULT_PERCENT_ALERTS = ALERT_LEVELS.reduce((acc, n) => { acc[n] = true; return acc; }, {});
+    const DEVICE_STALE_MS = 180000; // 3 minutes: reduces false offline status
 
     const firebaseConfig = {
       apiKey: "AIzaSyCYkB2xXeZDT7OA8UyCwDt0ipc3oLXDzkw",
@@ -204,7 +205,19 @@
 
     const getDeviceFinishTime = (startTime) => startTime ? new Date(startTime + INFUSION_DURATION_MS) : null;
 
-    const OFFLINE_ALERT_MS = 45 * 1000;
+    const getDeviceLastSeenMs = (device) => {
+      return Number(device?.heartbeatAt || device?.lastUpdate || device?.updatedAt || device?.startTime || 0) || 0;
+    };
+
+    const isDeviceOnline = (device) => {
+      if (!device) return false;
+      if (device.deviceOnline === false) return false;
+      const lastSeen = getDeviceLastSeenMs(device);
+      if (!lastSeen) return false;
+      return (Date.now() - lastSeen) <= DEVICE_STALE_MS;
+    };
+
+    const OFFLINE_ALERT_MS = DEVICE_STALE_MS;
     const NO_FLOW_ALERT_MS = 75 * 1000;
     const RAPID_DROP_PERCENT = 20;
 
@@ -214,11 +227,6 @@
         if ("Notification" in window && window.Notification && Notification.permission === "granted") {
           new Notification(title, { body, icon });
         }
-      } catch (e) {}
-      try {
-        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
-        audio.volume = 0.35;
-        audio.play().catch(() => {});
       } catch (e) {}
     };
 
@@ -345,17 +353,16 @@
       const finishTime = getDeviceFinishTime(data?.startTime);
       const finishLabel = finishTime ? finishTime.toLocaleTimeString('en-IN', { hour12: true, hour: '2-digit', minute: '2-digit' }) : '--';
       const isCrit = perc <= 10 && !isHistory;
-      const lastUpdate = Number(data?.lastUpdate || data?.updatedAt || data?.startTime || 0) || 0;
-      const lastUpdateLabel = lastUpdate ? new Date(lastUpdate).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '--';
-      const offlineAgeMs = lastUpdate ? (nowTick - lastUpdate) : 0;
-      const isOffline = !isHistory && offlineAgeMs > OFFLINE_ALERT_MS;
+      const lastSeen = getDeviceLastSeenMs(data);
+      const lastUpdateLabel = lastSeen ? new Date(lastSeen).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '--';
+      const isOnline = isHistory ? false : isDeviceOnline(data);
       const displayName = data?.patientName || `Room ${data?.room || '-'} - Bed ${data?.bed || '-'}`;
       const liveMins = data?.minsLeft !== undefined ? Number(data.minsLeft) : null;
       const liveSecs = data?.secsLeft !== undefined ? Number(data.secsLeft) : null;
       const timeString = isHistory ? 'Done' : (liveMins !== null ? `${liveMins}m ${String(liveSecs ?? 0).padStart(2, '0')}s left` : `${formatDuration(remainingMs)} left`);
 
       return (
-        <div className={`relative bg-white rounded-2xl p-4 md:p-5 border transition-all duration-300 shadow-sm flex flex-col justify-between ${isCrit ? 'border-red-400 critical-alert' : (isOffline ? 'border-amber-400' : 'border-slate-200')}`}>
+        <div className={`relative bg-white rounded-2xl p-4 md:p-5 border transition-all duration-300 shadow-sm flex flex-col justify-between ${isCrit ? 'border-red-400 critical-alert' : (isOnline ? 'border-emerald-300' : 'border-amber-400')}`}>
           <div>
             <div className="flex justify-between items-start mb-4 gap-2">
               <div className="pr-2 min-w-0 flex-1">
@@ -363,7 +370,11 @@
                 <div className="flex items-center gap-2 mt-1.5 text-xs font-bold text-slate-600 flex-wrap">
                   <span className="bg-blue-50 px-2 py-1 rounded-md border border-blue-100 shrink-0"><i className="fas fa-door-open mr-1 text-blue-500"></i> R: {data?.room}</span>
                   <span className="bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 shrink-0"><i className="fas fa-bed mr-1 text-indigo-500"></i> B: {data?.bed}</span>
-                  {isOffline && <span className="bg-amber-50 px-2 py-1 rounded-md border border-amber-100 text-amber-700 shrink-0"><i className="fas fa-wifi-slash mr-1 text-amber-500"></i> Offline</span>}
+                  {!isHistory && (
+                    <span className={`px-2 py-1 rounded-md border shrink-0 ${isOnline ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                      <i className={`fas ${isOnline ? 'fa-wifi' : 'fa-wifi-slash'} mr-1`}></i> {isOnline ? 'Online' : 'Offline'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="bg-slate-50 border border-slate-200 text-slate-800 rounded-lg px-2.5 py-1.5 text-center shadow-sm shrink-0">
@@ -383,7 +394,7 @@
               {!isHistory && (
                 <div className="mt-3 space-y-1.5">
                   <div className="text-[10px] text-slate-500 font-medium">Expected completion at <span className="font-bold text-slate-700">{finishLabel}</span></div>
-                  <div className="text-[10px] text-slate-400 font-medium">Last update: {lastUpdateLabel}</div>
+                  <div className="text-[10px] text-slate-400 font-medium">Last seen: {lastUpdateLabel}</div>
                 </div>
               )}
             </div>
@@ -1391,20 +1402,36 @@
           if (!did || dev.nurseId !== user.uid) return;
           const currentPerc = dev.perc !== undefined ? Number(dev.perc) : Math.max(0, Math.round((getRemainingMs(dev) / INFUSION_DURATION_MS) * 100));
           const currentRemainingMs = getRemainingMs(dev);
-          const lastUpdate = dev.lastUpdate || dev.updatedAt || dev.startTime || now;
+          const lastSeen = getDeviceLastSeenMs(dev) || now;
           const prev = prevStateRef.current[did] || {};
-          const prevAlert = prevAlertRef.current[did] || { perc: prev.perc !== undefined ? prev.perc : 100, remainingMs: prev.remainingMs !== undefined ? prev.remainingMs : INFUSION_DURATION_MS, lastUpdate };
+          const prevAlert = prevAlertRef.current[did] || { perc: prev.perc !== undefined ? prev.perc : 100, remainingMs: prev.remainingMs !== undefined ? prev.remainingMs : INFUSION_DURATION_MS, lastSeen };
           const settings = dev.notificationSettings || {};
           const notifyByPercent = settings.mode === 'percent' || !settings.mode;
           const percentPrefs = settings.percentAlerts || DEFAULT_PERCENT_ALERTS;
-          const lastChangeAt = prev.lastChangeAt || lastUpdate;
+          const lastChangeAt = prev.lastChangeAt || lastSeen;
           const alertState = { ...(prev.alertState || {}) };
 
           if (currentPerc !== prev.perc) alertState.noFlow = false;
-          if (currentPerc <= 1 && !alertState.empty) { triggerPatientAlert({ title: `Bottle empty: ${dev.patientName || `Room ${dev.room}`}`, body: 'The infusion is empty but not yet discharged.' }); alertState.empty = true; }
-          if (now - lastUpdate > OFFLINE_ALERT_MS && !alertState.offline) { triggerPatientAlert({ title: `Device Offline: ${dev.patientName || `Room ${dev.room}`}`, body: `No update received for more than ${Math.round(OFFLINE_ALERT_MS / 1000)} seconds.` }); alertState.offline = true; }
-          if (currentPerc === prev.perc && (now - lastChangeAt) > NO_FLOW_ALERT_MS && !alertState.noFlow) { triggerPatientAlert({ title: `No flow detected: ${dev.patientName || `Room ${dev.room}`}`, body: 'Sensor looks stuck or infusion has stopped updating.' }); alertState.noFlow = true; }
-          if (prev.perc !== undefined && (prev.perc - currentPerc) >= RAPID_DROP_PERCENT && (now - (prev.lastUpdate || lastUpdate)) <= 120000 && !alertState.rapidDrop) { triggerPatientAlert({ title: `Rapid drop detected: ${dev.patientName || `Room ${dev.room}`}`, body: 'Possible leak or disconnection detected.' }); alertState.rapidDrop = true; }
+
+          if (currentPerc <= 1 && !alertState.empty) {
+            triggerPatientAlert({ title: `Bottle empty: ${dev.patientName || `Room ${dev.room}`}`, body: 'The infusion is empty but not yet discharged.' });
+            alertState.empty = true;
+          }
+
+          if (!isDeviceOnline(dev) && !alertState.offline) {
+            triggerPatientAlert({ title: `Device Offline: ${dev.patientName || `Room ${dev.room}`}`, body: `No update received for more than ${Math.round(OFFLINE_ALERT_MS / 1000)} seconds.` });
+            alertState.offline = true;
+          }
+
+          if (currentPerc === prev.perc && (now - lastChangeAt) > NO_FLOW_ALERT_MS && !alertState.noFlow) {
+            triggerPatientAlert({ title: `No flow detected: ${dev.patientName || `Room ${dev.room}`}`, body: 'Sensor looks stuck or infusion has stopped updating.' });
+            alertState.noFlow = true;
+          }
+
+          if (prev.perc !== undefined && (prev.perc - currentPerc) >= RAPID_DROP_PERCENT && (now - (prev.lastSeen || lastSeen)) <= 120000 && !alertState.rapidDrop) {
+            triggerPatientAlert({ title: `Rapid drop detected: ${dev.patientName || `Room ${dev.room}`}`, body: 'Possible leak or disconnection detected.' });
+            alertState.rapidDrop = true;
+          }
 
           if (notifyByPercent) {
             for (let t of ALERT_LEVELS) {
@@ -1415,7 +1442,8 @@
               }
             }
           }
-          prevStateRef.current[did] = { perc: currentPerc, remainingMs: currentRemainingMs, lastUpdate, lastChangeAt: currentPerc === prev.perc ? lastChangeAt : now, alertState };
+
+          prevStateRef.current[did] = { perc: currentPerc, remainingMs: currentRemainingMs, lastSeen, lastChangeAt: currentPerc === prev.perc ? lastChangeAt : now, alertState };
           prevAlertRef.current[did] = { perc: currentPerc, remainingMs: currentRemainingMs };
         });
       }, [activeData, user.uid]);
