@@ -1,10 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+  <meta name="theme-color" content="#0f172a" />
   <title>SalineGuard Pro | Enterprise</title>
+
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem('sg-theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.classList.toggle('light', theme !== 'dark');
+      } catch (e) {}
+    })();
+  </script>
+
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {}
+      }
+    };
+  </script>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -31,13 +54,31 @@
     }
     :root, html, body {
       --bg-color: #f1f5f9;
+      --bg-gradient: radial-gradient(#e2e8f0 1px, transparent 1px);
+      --panel-bg: rgba(255,255,255,0.72);
+      --panel-border: rgba(255,255,255,0.55);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --card-bg: #ffffff;
       background-color: var(--bg-color) !important;
-      background-image: radial-gradient(#e2e8f0 1px, transparent 1px) !important;
+      background-image: var(--bg-gradient) !important;
       background-size: 20px 20px !important;
       background-attachment: fixed !important;
       background-position: 0 0 !important;
       overflow-x: hidden !important;
       -webkit-overflow-scrolling: touch;
+      color: var(--text-main);
+    }
+    html.dark, html.dark body {
+      --bg-color: #020617;
+      --bg-gradient: radial-gradient(rgba(71,85,105,0.32) 1px, transparent 1px);
+      --panel-bg: rgba(15,23,42,0.72);
+      --panel-border: rgba(51,65,85,0.75);
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --card-bg: #0f172a;
+      background-color: var(--bg-color) !important;
+      background-image: var(--bg-gradient) !important;
     }
     html, body, #root {
       border: none !important;
@@ -65,7 +106,7 @@
     }
     input:focus, textarea:focus { outline: none !important; border: none !important; box-shadow: none !important; }
     ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
-    .glass-panel { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+    .glass-panel { background: var(--panel-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--panel-border); }
     .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
     .hide-scroll::-webkit-scrollbar { display: none; }
     .pt-safe { padding-top: env(safe-area-inset-top, 12px); }
@@ -250,12 +291,12 @@
     const isNurseDisabled = (nurse) => !!(nurse?.disabled || nurse?.status === 'disabled');
 
     const LoadingScreen = () => (
-      <div className="fixed inset-0 bg-slate-50 z-[9999] flex flex-col items-center justify-center">
+      <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[9999] flex flex-col items-center justify-center">
         <div className="saline-loader">
           <div className="bottle"></div>
           <div className="drip"></div>
         </div>
-        <h2 className="text-xl font-extrabold text-slate-800 tracking-widest mt-6">SALINE GUARD</h2>
+        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white tracking-widest mt-6">SALINE GUARD</h2>
         <p className="text-xs text-blue-500 mt-2 font-mono font-medium">Initializing System...</p>
       </div>
     );
@@ -266,6 +307,28 @@
         <span className="font-bold text-sm">{msg}</span>
       </div>
     );
+
+    const ThemeToggle = () => {
+      const [dark, setDark] = useState(document.documentElement.classList.contains('dark'));
+      const applyTheme = (nextDark) => {
+        document.documentElement.classList.toggle('dark', nextDark);
+        document.documentElement.classList.toggle('light', !nextDark);
+        try { localStorage.setItem('sg-theme', nextDark ? 'dark' : 'light'); } catch (e) {}
+        try { document.querySelector('meta[name="theme-color"]')?.setAttribute('content', nextDark ? '#020617' : '#0f172a'); } catch (e) {}
+        setDark(nextDark);
+      };
+      return (
+        <button
+          type="button"
+          onClick={() => applyTheme(!dark)}
+          className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-slate-800/90 text-slate-200 hover:bg-slate-700 transition-all flex items-center justify-center shrink-0 border border-slate-700"
+          aria-label="Toggle theme"
+          title="Toggle theme"
+        >
+          <i className={`fas ${dark ? 'fa-sun' : 'fa-moon'} text-sm`}></i>
+        </button>
+      );
+    };
 
     const Clock = () => {
       const [t, setT] = useState(new Date());
@@ -301,7 +364,8 @@
                 <p className="text-[9px] md:text-xs text-blue-400 font-bold uppercase tracking-widest mt-0.5 truncate">{subtitle}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 md:gap-6 shrink-0">
+            <div className="flex items-center gap-3 md:gap-4 shrink-0">
+              <ThemeToggle />
               <Clock />
               <div className="hidden md:block w-px h-8 bg-slate-700/50"></div>
               <button onClick={() => setShowLogoutConfirm(true)} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shrink-0" aria-label="Logout">
@@ -312,16 +376,16 @@
 
           <PortalModal open={showLogoutConfirm}>
             <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 fade-in">
-              <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden">
-                <div className="p-6 md:p-7 border-b border-slate-100">
+              <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="p-6 md:p-7 border-b border-slate-100 dark:border-slate-800">
                   <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
                     <i className="fas fa-right-from-bracket text-2xl"></i>
                   </div>
-                  <h3 className="text-xl md:text-2xl font-extrabold text-slate-800">Do you want to log out?</h3>
-                  <p className="text-sm text-slate-500 mt-2 leading-6">You will be signed out of SalineGuard and taken back to the login screen.</p>
+                  <h3 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white">Do you want to log out?</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-6">You will be signed out of SalineGuard and taken back to the login screen.</p>
                 </div>
                 <div className="p-4 md:p-5 flex gap-3">
-                  <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm active:bg-slate-200 transition-colors">Cancel</button>
+                  <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm active:bg-slate-200 dark:active:bg-slate-700 transition-colors">Cancel</button>
                   <button onClick={() => { setShowLogoutConfirm(false); onLogout && onLogout(); }} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold text-sm active:bg-red-700 transition-colors">Log out</button>
                 </div>
               </div>
@@ -335,7 +399,7 @@
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scroll">
           {['day', 'week', 'month', 'max'].map(p => (
-            <button key={p} onClick={() => onChange(p)} className={`px-4 py-1.5 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors border shrink-0 ${current === p ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' : 'bg-white text-slate-500 border-slate-200 active:bg-slate-50'}`}>
+            <button key={p} onClick={() => onChange(p)} className={`px-4 py-1.5 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors border shrink-0 ${current === p ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 active:bg-slate-50 dark:active:bg-slate-800'}`}>
               {p}
             </button>
           ))}
@@ -358,7 +422,6 @@
       const isCrit = perc <= 10 && !isHistory;
       const lastSeenAt = getDeviceLastSeenAt(data);
       const lastUpdateLabel = lastSeenAt ? new Date(lastSeenAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '--';
-      const offlineAgeMs = lastSeenAt ? (nowTick - lastSeenAt) : Infinity;
       const isOnline = !isHistory && isDeviceOnlineNow(data, nowTick);
       const isOffline = !isHistory && !isOnline;
       const displayName = data?.patientName || `Room ${data?.room || '-'} - Bed ${data?.bed || '-'}`;
@@ -367,56 +430,55 @@
       const timeString = isHistory ? 'Done' : (liveMins !== null ? `${liveMins}m ${String(liveSecs ?? 0).padStart(2, '0')}s left` : `${formatDuration(remainingMs)} left`);
 
       return (
-        <div className={`relative bg-white rounded-2xl p-4 md:p-5 border transition-all duration-300 shadow-sm flex flex-col justify-between ${isCrit ? 'border-red-400 critical-alert' : (isOffline ? 'border-amber-400' : 'border-slate-200')}`}>
+        <div className={`relative bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border transition-all duration-300 shadow-sm flex flex-col justify-between ${isCrit ? 'border-red-400 critical-alert' : (isOffline ? 'border-amber-400' : 'border-slate-200 dark:border-slate-700')}`}>
           <div>
             <div className="flex justify-between items-start mb-4 gap-2">
               <div className="pr-2 min-w-0 flex-1">
-                <h3 className="font-bold text-slate-800 text-base md:text-lg truncate" title={displayName}>{displayName}</h3>
-                <div className="flex items-center gap-2 mt-1.5 text-xs font-bold text-slate-600 flex-wrap">
-                  <span className="bg-blue-50 px-2 py-1 rounded-md border border-blue-100 shrink-0"><i className="fas fa-door-open mr-1 text-blue-500"></i> R: {data?.room}</span>
-                  <span className="bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 shrink-0"><i className="fas fa-bed mr-1 text-indigo-500"></i> B: {data?.bed}</span>
+                <h3 className="font-bold text-slate-800 dark:text-white text-base md:text-lg truncate" title={displayName}>{displayName}</h3>
+                <div className="flex items-center gap-2 mt-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 flex-wrap">
+                  <span className="bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900 shrink-0"><i className="fas fa-door-open mr-1 text-blue-500"></i> R: {data?.room}</span>
+                  <span className="bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded-md border border-indigo-100 dark:border-indigo-900 shrink-0"><i className="fas fa-bed mr-1 text-indigo-500"></i> B: {data?.bed}</span>
                   {!isHistory && (
-                    <span className={`px-2 py-1 rounded-md border shrink-0 ${isOnline ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                    <span className={`px-2 py-1 rounded-md border shrink-0 ${isOnline ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900'}`}>
                       <i className={`fas ${isOnline ? 'fa-wifi' : 'fa-wifi-slash'} mr-1 ${isOnline ? 'text-emerald-500' : 'text-amber-500'}`}></i>
                       {isOnline ? 'Online' : 'Offline'}
                     </span>
                   )}
-                  {isOffline && <span className="bg-amber-50 px-2 py-1 rounded-md border border-amber-100 text-amber-700 shrink-0"><i className="fas fa-wifi-slash mr-1 text-amber-500"></i> Offline</span>}
                 </div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 text-slate-800 rounded-lg px-2.5 py-1.5 text-center shadow-sm shrink-0">
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 text-center shadow-sm shrink-0">
                 <div className="text-[8px] uppercase font-bold text-slate-400 mb-0.5 tracking-wider">Device ID</div>
-                <div className="font-mono font-bold text-xs md:text-sm leading-none text-slate-700">{data?.deviceId}</div>
+                <div className="font-mono font-bold text-xs md:text-sm leading-none text-slate-700 dark:text-slate-200">{data?.deviceId}</div>
               </div>
             </div>
 
             <div className="mb-4">
               <div className="flex justify-between text-xs font-bold mb-1.5 gap-2">
                 <span className={perc <= 10 && !isHistory ? 'text-red-600 animate-pulse' : 'text-blue-600'}>{perc}% Infused</span>
-                <span className="text-slate-400 font-mono tracking-tight truncate">{isHistory ? (data?.autoDischarged ? 'Auto Discharged' : 'Completed') : timeString}</span>
+                <span className="text-slate-400 dark:text-slate-500 font-mono tracking-tight truncate">{isHistory ? (data?.autoDischarged ? 'Auto Discharged' : 'Completed') : timeString}</span>
               </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+              <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
                 <div className={`h-full rounded-full transition-all duration-1000 ${isHistory ? 'bg-emerald-500' : (perc<=10 ? 'bg-red-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500')}`} style={{ width: `${Math.max(0, Math.min(100, perc))}%` }}></div>
               </div>
               {!isHistory && (
                 <div className="mt-3 space-y-1.5">
-                  <div className="text-[10px] text-slate-500 font-medium">Expected completion at <span className="font-bold text-slate-700">{finishLabel}</span></div>
-                  <div className="text-[10px] text-slate-400 font-medium">Last update: {lastUpdateLabel}</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Expected completion at <span className="font-bold text-slate-700 dark:text-slate-200">{finishLabel}</span></div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Last update: {lastUpdateLabel}</div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-3 border-t border-slate-100 mt-auto gap-3">
-            <div className="text-[9px] md:text-[10px] text-slate-500 font-medium min-w-0">
-              <div className="mb-1 text-slate-700 font-bold flex items-center truncate max-w-[150px]"><i className="fas fa-user-nurse mr-1.5 text-slate-400"></i><span className="truncate">{data?.nurseName || 'Unknown Staff'}</span></div>
+          <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800 mt-auto gap-3">
+            <div className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-medium min-w-0">
+              <div className="mb-1 text-slate-700 dark:text-slate-200 font-bold flex items-center truncate max-w-[150px]"><i className="fas fa-user-nurse mr-1.5 text-slate-400"></i><span className="truncate">{data?.nurseName || 'Unknown Staff'}</span></div>
               {isHistory ? (
-                <span className={`px-2 py-0.5 rounded-md inline-block ${data?.autoDischarged ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'}`}>
+                <span className={`px-2 py-0.5 rounded-md inline-block ${data?.autoDischarged ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300'}`}>
                   <i className={`fas ${data?.autoDischarged ? 'fa-clock' : 'fa-check-circle'} mr-1`}></i>
                   {data?.autoDischarged ? 'Auto Discharged' : new Date(data?.completedAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                 </span>
               ) : (
-                <span className="text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md inline-block">Start: {new Date(data?.startTime || Date.now()).toLocaleString('en-IN', { timeStyle: 'short' })}</span>
+                <span className="text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-md inline-block">Start: {new Date(data?.startTime || Date.now()).toLocaleString('en-IN', { timeStyle: 'short' })}</span>
               )}
             </div>
             {!isHistory && (
@@ -455,17 +517,17 @@
       return (
         <PortalModal open={isOpen}>
           <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-            <div className="bg-white w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border-0 outline-none mx-auto">
+            <div className="bg-white dark:bg-slate-900 w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800 outline-none mx-auto">
               <div className="flex justify-between items-center mb-6 gap-3">
                 <div className="min-w-0">
-                  <h3 className="font-extrabold text-slate-800 text-xl">Register Device</h3>
+                  <h3 className="font-extrabold text-slate-800 dark:text-white text-xl">Register Device</h3>
                   <p className="text-xs font-medium text-slate-400 mt-1">Add ESP ID to hospital inventory</p>
                 </div>
-                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
               </div>
               <div className="space-y-4">
                 <div className="relative">
-                  <input value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="e.g. ESP-1001" className="w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl font-mono text-center text-xl font-bold tracking-widest uppercase transition-colors" autoFocus />
+                  <input value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="e.g. ESP-1001" className="w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl font-mono text-center text-xl font-bold tracking-widest uppercase transition-colors" autoFocus />
                   <div className="text-[10px] uppercase tracking-wider font-bold text-center text-slate-400 mt-2">Unique Device ID <span className="text-red-500">*</span></div>
                 </div>
                 <button onClick={handleSubmit} disabled={loading} className="w-full bg-indigo-600 active:bg-indigo-700 text-white mt-1 py-4 rounded-xl font-bold shadow-lg shadow-indigo-500/30 active:scale-[0.98] transition-all flex justify-center items-center gap-2 border-none outline-none">
@@ -575,18 +637,18 @@
       return (
         <PortalModal open={isOpen}>
           <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-            <div className="bg-white w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border-0 outline-none max-h-[92vh] overflow-y-auto hide-scroll mx-auto">
+            <div className="bg-white dark:bg-slate-900 w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800 outline-none max-h-[92vh] overflow-y-auto hide-scroll mx-auto">
               <div className="flex justify-between items-center mb-6 gap-3">
                 <div className="min-w-0">
-                  <h3 className="font-extrabold text-slate-800 text-xl">New Infusion</h3>
+                  <h3 className="font-extrabold text-slate-800 dark:text-white text-xl">New Infusion</h3>
                   <p className="text-xs font-medium text-slate-400 mt-1">Connect device to patient bed</p>
                 </div>
-                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
               </div>
 
               <div className="space-y-4">
                 <div className="relative">
-                  <input value={form.id} onChange={e=>setForm({...form, id:e.target.value.toUpperCase()})} placeholder="e.g. KN0326001" className={`w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl font-mono text-center text-xl font-bold tracking-widest uppercase transition-colors border-2 ${deviceStatus === 'valid' ? 'border-emerald-400 bg-emerald-50' : deviceStatus === 'invalid' || deviceStatus === 'in_use' ? 'border-red-400 bg-red-50' : 'border-transparent'}`} autoFocus />
+                  <input value={form.id} onChange={e=>setForm({...form, id:e.target.value.toUpperCase()})} placeholder="e.g. KN0326001" className={`w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl font-mono text-center text-xl font-bold tracking-widest uppercase transition-colors border-2 ${deviceStatus === 'valid' ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30' : deviceStatus === 'invalid' || deviceStatus === 'in_use' ? 'border-red-400 bg-red-50 dark:bg-red-950/30' : 'border-transparent'}`} autoFocus />
                   {deviceStatus === 'checking' && <div className="absolute right-4 top-5 text-blue-500"><i className="fas fa-circle-notch fa-spin text-lg"></i></div>}
                   {deviceStatus === 'valid' && <div className="absolute right-4 top-5 text-emerald-500"><i className="fas fa-check-circle text-xl"></i></div>}
                   {deviceStatus === 'invalid' && <div className="absolute right-4 top-5 text-red-500"><i className="fas fa-times-circle text-xl"></i></div>}
@@ -602,31 +664,31 @@
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <input value={form.room} onChange={e=>setForm({...form, room:e.target.value})} placeholder="Room 101" className="w-full p-3.5 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
+                    <input value={form.room} onChange={e=>setForm({...form, room:e.target.value})} placeholder="Room 101" className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
                     <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Room No <span className="text-red-500">*</span></div>
                   </div>
                   <div>
-                    <input value={form.bed} onChange={e=>setForm({...form, bed:e.target.value})} placeholder="Bed A" className="w-full p-3.5 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
+                    <input value={form.bed} onChange={e=>setForm({...form, bed:e.target.value})} placeholder="Bed A" className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
                     <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Bed No <span className="text-red-500">*</span></div>
                   </div>
                 </div>
 
                 <div className="pt-1">
-                  <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} placeholder="Patient Name (Optional)" className="w-full p-3.5 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder-slate-400 transition-colors" />
+                  <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} placeholder="Patient Name (Optional)" className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-medium text-slate-700 placeholder-slate-400 transition-colors" />
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-3 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500">Percentage alerts</div>
-                      <div className="text-xs text-slate-400 mt-1">Turn individual percentage notifications on or off</div>
+                      <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-300">Percentage alerts</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-400 mt-1">Turn individual percentage notifications on or off</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {ALERT_LEVELS.map(level => {
                       const on = alertPrefs[level] !== false;
                       return (
-                        <button key={level} type="button" onClick={() => toggleAlert(level)} className={`rounded-xl px-3 py-2 text-xs font-extrabold border transition-all ${on ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
+                        <button key={level} type="button" onClick={() => toggleAlert(level)} className={`rounded-xl px-3 py-2 text-xs font-extrabold border transition-all ${on ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-400'}`}>
                           {level}% {on ? 'On' : 'Off'}
                         </button>
                       );
@@ -700,25 +762,25 @@
       return (
         <PortalModal open={isOpen}>
           <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-            <div className="bg-white w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border-0 outline-none mx-auto">
+            <div className="bg-white dark:bg-slate-900 w-[92vw] max-w-sm rounded-3xl p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800 outline-none mx-auto">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-extrabold text-slate-800 text-xl">Edit Staff Details</h3>
-                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 active:bg-slate-200 flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
+                <h3 className="font-extrabold text-slate-800 dark:text-white text-xl">Edit Staff Details</h3>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
               </div>
               <div className="space-y-4">
-                <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full Name" className="w-full p-3.5 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-medium transition-colors" />
-                <div className="text-[11px] font-mono text-slate-500 bg-slate-50 p-3 rounded-xl border-none break-all">ID: {currentNurse.email}</div>
+                <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full Name" className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-medium transition-colors" />
+                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border-none break-all">ID: {currentNurse.email}</div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                  <div className="text-[10px] uppercase tracking-wider font-bold text-amber-700 mb-1">Change password request</div>
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-2xl p-4">
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-amber-700 dark:text-amber-300 mb-1">Change password request</div>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={e=>setNewPassword(e.target.value)}
                     placeholder="New password"
-                    className="w-full p-3 bg-white rounded-xl text-sm font-bold text-slate-700"
+                    className="w-full p-3 bg-white dark:bg-slate-900 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
                   />
-                  <div className="text-[10px] text-amber-700/80 mt-2">
+                  <div className="text-[10px] text-amber-700/80 dark:text-amber-200/70 mt-2">
                     This stores a pending password request in Firebase. A backend Cloud Function must apply it to Firebase Auth.
                   </div>
                 </div>
@@ -739,16 +801,16 @@
       return (
         <PortalModal open={isOpen}>
           <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-            <div className="bg-white w-[95vw] max-w-sm rounded-2xl shadow-2xl relative overflow-hidden border-none outline-none mx-auto">
+            <div className="bg-white dark:bg-slate-900 w-[95vw] max-w-sm rounded-2xl shadow-2xl relative overflow-hidden border border-slate-100 dark:border-slate-800 outline-none mx-auto">
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-8 text-center">
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fas fa-check text-3xl"></i></div>
                 <h3 className="text-2xl font-extrabold tracking-tight">Account Created!</h3>
               </div>
               <div className="p-7 space-y-4">
-                <div className="bg-slate-50 p-4 rounded-xl border-none"><p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1 uppercase">Email Address</p><p className="font-mono font-bold text-slate-800 break-all">{creds.email}</p></div>
-                <div className="bg-slate-50 p-4 rounded-xl border-none"><p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1 uppercase">Initial Password</p><p className="font-mono font-bold text-slate-800 tracking-wider">{creds.password}</p></div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-none"><p className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-400 mb-1 uppercase">Email Address</p><p className="font-mono font-bold text-slate-800 dark:text-white break-all">{creds.email}</p></div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border-none"><p className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-400 mb-1 uppercase">Initial Password</p><p className="font-mono font-bold text-slate-800 dark:text-white tracking-wider">{creds.password}</p></div>
                 <button onClick={async () => { try { await copyText(`Email: ${creds.email}\nPassword: ${creds.password}`); alert('Copied!'); } catch (error) { alert('Copy failed. Please copy the credentials manually.'); } }} className="w-full bg-slate-900 active:bg-slate-800 text-white py-4 rounded-xl font-bold transition-colors border-none outline-none">Copy Credentials</button>
-                <button onClick={onClose} className="w-full text-slate-500 active:text-slate-800 py-2 font-bold transition-colors border-none outline-none">Done</button>
+                <button onClick={onClose} className="w-full text-slate-500 dark:text-slate-400 active:text-slate-800 dark:active:text-white py-2 font-bold transition-colors border-none outline-none">Done</button>
               </div>
             </div>
           </div>
@@ -826,32 +888,32 @@
         <>
           <PortalModal open={isOpen}>
             <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-              <div className="bg-white w-[95vw] max-w-sm rounded-2xl p-6 shadow-2xl relative border-0 outline-none mx-auto">
+              <div className="bg-white dark:bg-slate-900 w-[95vw] max-w-sm rounded-2xl p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800 outline-none mx-auto">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h3 className="font-extrabold text-slate-800 text-xl">Register Staff</h3>
+                    <h3 className="font-extrabold text-slate-800 dark:text-white text-xl">Register Staff</h3>
                     <p className="text-xs font-medium text-slate-400 mt-1">Add new staff credentials</p>
                   </div>
-                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
+                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
                 </div>
 
                 <div className="space-y-4">
                   <div className="relative">
-                    <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} placeholder="e.g. Jane Doe" className="w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl font-medium text-center text-xl tracking-wide transition-colors" autoFocus />
+                    <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} placeholder="e.g. Jane Doe" className="w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl font-medium text-center text-xl tracking-wide transition-colors" autoFocus />
                     <div className="text-[10px] uppercase tracking-wider font-bold text-center text-slate-400 mt-2">Full Name <span className="text-red-500">*</span></div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <input type="password" value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="••••••" className="w-full p-3.5 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
+                      <input type="password" value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="••••••" className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
                       <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Pass (Min 6) <span className="text-red-500">*</span></div>
                     </div>
                   </div>
 
                   <div className="pt-1">
-                    <div className="w-full p-3 bg-blue-50 rounded-xl text-center border-none">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Generated Staff ID</span>
-                      <span className="text-sm font-mono text-blue-600 font-bold break-all">{generatedEmail || 'Enter name to generate'}</span>
+                    <div className="w-full p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-center border-none">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase block mb-1">Generated Staff ID</span>
+                      <span className="text-sm font-mono text-blue-600 dark:text-blue-400 font-bold break-all">{generatedEmail || 'Enter name to generate'}</span>
                     </div>
                   </div>
 
@@ -943,32 +1005,32 @@
         <>
           <PortalModal open={isOpen}>
             <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black/80 backdrop-blur-md flex items-center justify-center p-4 m-0 fade-in">
-              <div className="bg-white w-[95vw] max-w-md rounded-2xl p-6 shadow-2xl relative border-0 outline-none max-h-[92vh] overflow-y-auto hide-scroll mx-auto">
+              <div className="bg-white dark:bg-slate-900 w-[95vw] max-w-md rounded-2xl p-6 shadow-2xl relative border border-slate-100 dark:border-slate-800 outline-none max-h-[92vh] overflow-y-auto hide-scroll mx-auto">
                 <div className="flex justify-between items-center mb-6 gap-3">
                   <div>
-                    <h3 className="font-extrabold text-slate-800 text-xl">Add Hospital</h3>
+                    <h3 className="font-extrabold text-slate-800 dark:text-white text-xl">Add Hospital</h3>
                     <p className="text-xs font-medium text-slate-400 mt-1">Create a new facility and admin account</p>
                   </div>
-                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
+                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 transition-colors flex items-center justify-center border-none"><i className="fas fa-times text-sm"></i></button>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <input value={form.hospitalName} onChange={e=>setForm({...form, hospitalName:e.target.value})} placeholder="Hospital Name" className="w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" autoFocus />
+                    <input value={form.hospitalName} onChange={e=>setForm({...form, hospitalName:e.target.value})} placeholder="Hospital Name" className="w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" autoFocus />
                     <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Hospital name</div>
                   </div>
                   <div>
-                    <input value={form.location} onChange={e=>setForm({...form, location:e.target.value})} placeholder="Location / City" className="w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
+                    <input value={form.location} onChange={e=>setForm({...form, location:e.target.value})} placeholder="Location / City" className="w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
                     <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Location</div>
                   </div>
                   <div>
-                    <input type="password" value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="Admin Password" className="w-full p-4 bg-slate-100 focus:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
+                    <input type="password" value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="Admin Password" className="w-full p-4 bg-slate-100 dark:bg-slate-800 dark:text-white focus:bg-slate-200 dark:focus:bg-slate-700 rounded-xl text-sm font-bold text-slate-700 transition-colors" />
                     <div className="text-[10px] text-slate-400 font-bold uppercase mt-1 ml-1">Admin password (min 6)</div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                    <div><div className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Hospital ID</div><div className="font-mono text-sm font-bold text-slate-700 break-all">{generatedHospitalId || 'Enter name and location'}</div></div>
-                    <div><div className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Admin Email</div><div className="font-mono text-sm font-bold text-blue-600 break-all">{generatedEmail || 'Will be generated automatically'}</div></div>
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-2">
+                    <div><div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-400">Hospital ID</div><div className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200 break-all">{generatedHospitalId || 'Enter name and location'}</div></div>
+                    <div><div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-400">Admin Email</div><div className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400 break-all">{generatedEmail || 'Will be generated automatically'}</div></div>
                   </div>
 
                   <button onClick={handleSubmit} disabled={loading} className="w-full bg-indigo-600 active:bg-indigo-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-500/30 active:scale-[0.98] transition-all flex justify-center items-center gap-2 border-none outline-none">
@@ -1158,7 +1220,7 @@
         } catch (e) { alert(e.message); }
       };
 
-      if (!hospitalMeta) return <div className="p-12 text-center text-slate-400 font-medium animate-pulse">Syncing Hospital Data...</div>;
+      if (!hospitalMeta) return <div className="p-12 text-center text-slate-400 dark:text-slate-500 font-medium animate-pulse">Syncing Hospital Data...</div>;
 
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -1188,38 +1250,38 @@
         <div className="space-y-5 md:space-y-6 fade-in w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {toast && <Toast {...toast} />}
 
-          <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200 flex items-center mb-5 md:mb-6">
+          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center mb-5 md:mb-6">
             <i className="fas fa-search text-slate-400 ml-3"></i>
-            <input type="text" placeholder="Search Patients, Devices, Staff..." className="w-full p-2 outline-none text-sm text-slate-700 ml-2 font-medium bg-transparent" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" placeholder="Search Patients, Devices, Staff..." className="w-full p-2 outline-none text-sm text-slate-700 dark:text-slate-200 ml-2 font-medium bg-transparent" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-5">
-            <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-2 md:gap-3 mb-2">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0"><i className="fas fa-procedures text-xs md:text-base"></i></div>
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-500 flex items-center justify-center shrink-0"><i className="fas fa-procedures text-xs md:text-base"></i></div>
                 <div className="text-[9px] md:text-[11px] font-extrabold text-slate-400 uppercase tracking-widest truncate">Active Now</div>
               </div>
-              <div className="text-2xl md:text-4xl font-black text-slate-800 tracking-tight">{activeDevs.length}</div>
+              <div className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">{activeDevs.length}</div>
             </div>
-            <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-2 md:gap-3 mb-2">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0"><i className="fas fa-clipboard-check text-xs md:text-base"></i></div>
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 flex items-center justify-center shrink-0"><i className="fas fa-clipboard-check text-xs md:text-base"></i></div>
                 <div className="text-[9px] md:text-[11px] font-extrabold text-slate-400 uppercase tracking-widest truncate">Discharged (Today)</div>
               </div>
-              <div className="text-2xl md:text-4xl font-black text-slate-800 tracking-tight">{todayDischarges.length}</div>
+              <div className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">{todayDischarges.length}</div>
             </div>
-            <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-2 md:gap-3 mb-2">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><i className="fas fa-microchip text-xs md:text-base"></i></div>
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500 flex items-center justify-center shrink-0"><i className="fas fa-microchip text-xs md:text-base"></i></div>
                 <div className="text-[9px] md:text-[11px] font-extrabold text-slate-400 uppercase tracking-widest truncate">Registered Devices</div>
               </div>
-              <div className="text-2xl md:text-4xl font-black text-slate-800 tracking-tight">{totalRegisteredDevices}</div>
+              <div className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">{totalRegisteredDevices}</div>
             </div>
           </div>
 
-          <div className="flex gap-6 border-b border-slate-200 mt-6 md:mt-8 px-1 overflow-x-auto hide-scroll">
+          <div className="flex gap-6 border-b border-slate-200 dark:border-slate-700 mt-6 md:mt-8 px-1 overflow-x-auto hide-scroll">
             {['active', 'history', 'nurses', 'devices'].map(t => (
-              <button key={t} onClick={()=>setTab(t)} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab===t ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400'}`}>
+              <button key={t} onClick={()=>setTab(t)} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab===t ? 'border-blue-600 text-blue-700 dark:text-blue-400' : 'border-transparent text-slate-400 dark:text-slate-500'}`}>
                 {t === 'devices' ? 'Inventory' : t}
               </button>
             ))}
@@ -1229,7 +1291,7 @@
             {tab === 'active' && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
                 {filteredActive.slice(0, visibleCounts.active).map((d, i) => <StatusCard key={d.deviceId || `${d.room || 'room'}-${d.bed || 'bed'}-${d.startTime || 'time'}-${i}`} data={d} onComplete={handleDischarge} />)}
-                {filteredActive.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 font-medium bg-white rounded-2xl border border-dashed border-slate-200 text-sm">No active infusions right now.</div>}
+                {filteredActive.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 dark:text-slate-500 font-medium bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-sm">No active infusions right now.</div>}
                 {filteredActive.length > visibleCounts.active && <div className="col-span-full flex justify-center"><button onClick={() => setVisibleCounts(prev => ({ ...prev, active: prev.active + 24 }))} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold">Load more patients</button></div>}
               </div>
             )}
@@ -1239,7 +1301,7 @@
                 <FilterTabs current={filterPeriod} onChange={setFilterPeriod} resultCount={filteredHistory.length} />
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 opacity-90">
                   {filteredHistory.slice(0, visibleCounts.history).map((d, i) => <StatusCard key={d.historyId || `${d.deviceId || 'hist'}-${d.completedAt || d.startTime || i}-${i}`} data={d} isHistory={true} />)}
-                  {filteredHistory.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 font-medium bg-white rounded-2xl border border-dashed border-slate-200 text-sm">No history records found for this period.</div>}
+                  {filteredHistory.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 dark:text-slate-500 font-medium bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-sm">No history records found for this period.</div>}
                   {filteredHistory.length > visibleCounts.history && <div className="col-span-full flex justify-center"><button onClick={() => setVisibleCounts(prev => ({ ...prev, history: prev.history + 24 }))} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold">Load more history</button></div>}
                 </div>
               </div>
@@ -1253,26 +1315,26 @@
                     const disabled = isNurseDisabled(n);
                     const activeCount = Object.values(activeData || {}).filter(dev => dev?.nurseId === n.uid).length;
                     return (
-                      <div key={n.uid || n.email || `${n.name || 'staff'}-${i}`} className={`bg-white p-4 md:p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${disabled ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'}`}>
+                      <div key={n.uid || n.email || `${n.name || 'staff'}-${i}`} className={`bg-white dark:bg-slate-900 p-4 md:p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${disabled ? 'border-amber-300 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10' : 'border-slate-200 dark:border-slate-700'}`}>
                         <div className="flex items-center gap-3 md:gap-4">
                           <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-extrabold text-base md:text-lg shrink-0 ${disabled ? 'bg-amber-100 text-amber-700' : 'bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700'}`}>{(n.name || '?').charAt(0).toUpperCase()}</div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-extrabold text-slate-800 text-sm md:text-base truncate">{n.name}</div>
-                            <div className="text-[10px] md:text-xs font-medium text-slate-500 mt-0.5 truncate">{n.email}</div>
+                            <div className="font-extrabold text-slate-800 dark:text-white text-sm md:text-base truncate">{n.name}</div>
+                            <div className="text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">{n.email}</div>
                             <div className="mt-1 flex flex-wrap gap-2 items-center">
                               {disabled ? (
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-amber-100 text-amber-700 border border-amber-200">Disabled</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900">Disabled</span>
                               ) : (
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200">Active</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">Active</span>
                               )}
-                              {activeCount > 0 && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100">{activeCount} patient(s)</span>}
+                              {activeCount > 0 && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">{activeCount} patient(s)</span>}
                             </div>
                           </div>
                         </div>
                         {!isSuperView && (
-                          <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
-                            <button onClick={() => { setSelectedNurse(n); setShowEditNurse(true); }} className="flex-1 bg-slate-50 active:bg-slate-100 text-slate-600 text-[11px] md:text-xs font-bold py-2.5 rounded-lg transition-colors border-none outline-none">Edit</button>
-                            <button onClick={() => handleToggleNurseStatus(n)} className={`flex-1 text-[11px] md:text-xs font-bold py-2.5 rounded-lg transition-colors border-none outline-none ${disabled ? 'bg-emerald-50 active:bg-emerald-100 text-emerald-700' : 'bg-red-50 active:bg-red-100 text-red-600'}`}>
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <button onClick={() => { setSelectedNurse(n); setShowEditNurse(true); }} className="flex-1 bg-slate-50 dark:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 text-slate-600 dark:text-slate-200 text-[11px] md:text-xs font-bold py-2.5 rounded-lg transition-colors border-none outline-none">Edit</button>
+                            <button onClick={() => handleToggleNurseStatus(n)} className={`flex-1 text-[11px] md:text-xs font-bold py-2.5 rounded-lg transition-colors border-none outline-none ${disabled ? 'bg-emerald-50 dark:bg-emerald-950/30 active:bg-emerald-100 dark:active:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-950/30 active:bg-red-100 dark:active:bg-red-900 text-red-600 dark:text-red-300'}`}>
                               {disabled ? 'Enable' : 'Disable'}
                             </button>
                           </div>
@@ -1280,7 +1342,7 @@
                       </div>
                     );
                   })}
-                  {filteredNurses.length === 0 && <div className="text-slate-400 col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-sm">No staff registered.</div>}
+                  {filteredNurses.length === 0 && <div className="text-slate-400 dark:text-slate-500 col-span-full py-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-sm">No staff registered.</div>}
                 </div>
               </div>
             )}
@@ -1288,17 +1350,17 @@
             {tab === 'devices' && (
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">AMC Due Date</div>
-                    <div className="mt-2 font-bold text-slate-800 text-sm">{amcDueDate.toLocaleDateString('en-IN')}</div>
+                    <div className="mt-2 font-bold text-slate-800 dark:text-white text-sm">{amcDueDate.toLocaleDateString('en-IN')}</div>
                   </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Devices</div>
-                    <div className="mt-2 font-black text-slate-800 text-xl">{totalRegisteredDevices}</div>
+                    <div className="mt-2 font-black text-slate-800 dark:text-white text-xl">{totalRegisteredDevices}</div>
                   </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Per Amount</div>
-                    <div className="mt-2 font-black text-slate-800 text-xl">{formatMoney(AMC_PER_DEVICE)}</div>
+                    <div className="mt-2 font-black text-slate-800 dark:text-white text-xl">{formatMoney(AMC_PER_DEVICE)}</div>
                   </div>
                   <div className="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-sm text-white">
                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-blue-300">Total Amount</div>
@@ -1311,22 +1373,22 @@
                   {filteredDevices.map((dev, i) => {
                     const isActive = activeData && activeData[dev.deviceId];
                     return (
-                      <div key={dev.deviceId || `${dev.addedAt || 'added'}-${i}`} className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                      <div key={dev.deviceId || `${dev.addedAt || 'added'}-${i}`} className="bg-white dark:bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start mb-2 gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><i className="fas fa-satellite-dish text-lg"></i></div>
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0"><i className="fas fa-satellite-dish text-lg"></i></div>
                             <div className="min-w-0">
-                              <div className="font-mono font-bold text-slate-800 text-sm md:text-base truncate">{dev.deviceId}</div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">Added: {new Date(dev.addedAt || Date.now()).toLocaleDateString('en-IN')}</div>
+                              <div className="font-mono font-bold text-slate-800 dark:text-white text-sm md:text-base truncate">{dev.deviceId}</div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Added: {new Date(dev.addedAt || Date.now()).toLocaleDateString('en-IN')}</div>
                             </div>
                           </div>
-                          <div className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{isActive ? 'In Use' : 'Idle'}</div>
+                          <div className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border shrink-0 ${isActive ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>{isActive ? 'In Use' : 'Idle'}</div>
                         </div>
-                        {isSuperView && <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end"><button onClick={() => handleDeleteDevice(dev.deviceId)} className="bg-red-50 active:bg-red-100 text-red-600 text-[11px] font-bold px-4 py-2 rounded-lg transition-colors border-none outline-none">Remove Device</button></div>}
+                        {isSuperView && <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end"><button onClick={() => handleDeleteDevice(dev.deviceId)} className="bg-red-50 dark:bg-red-950/30 active:bg-red-100 dark:active:bg-red-900 text-red-600 dark:text-red-300 text-[11px] font-bold px-4 py-2 rounded-lg transition-colors border-none outline-none">Remove Device</button></div>}
                       </div>
                     );
                   })}
-                  {filteredDevices.length === 0 && <div className="text-slate-400 col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-sm">No devices in hospital inventory.</div>}
+                  {filteredDevices.length === 0 && <div className="text-slate-400 dark:text-slate-500 col-span-full py-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-sm">No devices in hospital inventory.</div>}
                 </div>
               </div>
             )}
@@ -1468,18 +1530,18 @@
           {toast && <Toast {...toast} />}
           <AppHeader title={hName} subtitle={`Staff: ${nurseName || user.email.split('@')[0]}`} onLogout={onLogout} />
           <div className="p-4 md:p-6 w-full max-w-7xl mx-auto space-y-5 md:space-y-6 mt-2">
-            <div className="flex gap-4 md:gap-6 border-b border-slate-200 overflow-x-auto hide-scroll">
-              <button onClick={()=>setTab('active')} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab==='active' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400'}`}>My Patients ({userDevices.length})</button>
-              <button onClick={()=>setTab('history')} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab==='history' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400'}`}>History</button>
+            <div className="flex gap-4 md:gap-6 border-b border-slate-200 dark:border-slate-700 overflow-x-auto hide-scroll">
+              <button onClick={()=>setTab('active')} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab==='active' ? 'border-blue-600 text-blue-700 dark:text-blue-400' : 'border-transparent text-slate-400 dark:text-slate-500'}`}>My Patients ({userDevices.length})</button>
+              <button onClick={()=>setTab('history')} className={`pb-3 text-xs md:text-sm font-extrabold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${tab==='history' ? 'border-blue-600 text-blue-700 dark:text-blue-400' : 'border-transparent text-slate-400 dark:text-slate-500'}`}>History</button>
             </div>
 
             {tab === 'active' && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
                 {userDevices.slice(0, visibleCounts.active).map((d, i) => <StatusCard key={d.deviceId || `${d.room || 'room'}-${d.bed || 'bed'}-${d.startTime || 'time'}-${i}`} data={d} onComplete={handleComplete} />)}
                 {userDevices.length === 0 && (
-                  <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-300 rounded-[2rem] bg-white/50 text-slate-400">
-                    <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fas fa-bed text-xl md:text-2xl text-slate-300"></i></div>
-                    <p className="font-bold text-base md:text-lg text-slate-500">No active infusions</p>
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-[2rem] bg-white/50 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500">
+                    <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fas fa-bed text-xl md:text-2xl text-slate-300 dark:text-slate-600"></i></div>
+                    <p className="font-bold text-base md:text-lg text-slate-500 dark:text-slate-300">No active infusions</p>
                     <p className="text-xs md:text-sm mt-1">Tap the + button to assign a device.</p>
                   </div>
                 )}
@@ -1489,14 +1551,14 @@
 
             {tab === 'history' && (
               <div>
-                <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200 flex items-center mb-4">
+                <div className="bg-white dark:bg-slate-900 p-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center mb-4">
                   <i className="fas fa-search text-slate-400 ml-3"></i>
-                  <input type="text" placeholder="Search history by patient, room, bed, device or staff..." className="w-full p-2 outline-none text-sm text-slate-700 ml-2 font-medium bg-transparent" value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} />
+                  <input type="text" placeholder="Search history by patient, room, bed, device or staff..." className="w-full p-2 outline-none text-sm text-slate-700 dark:text-slate-200 ml-2 font-medium bg-transparent" value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} />
                 </div>
                 <FilterTabs current={filterPeriod} onChange={setFilterPeriod} resultCount={filteredHistory.length} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 opacity-80">
                   {filteredHistory.slice(0, visibleCounts.history).map((d,i) => <StatusCard key={d.historyId || `${d.deviceId || 'hist'}-${d.completedAt || d.startTime || i}-${i}`} data={d} isHistory={true} />)}
-                  {filteredHistory.length === 0 && <p className="col-span-full text-center text-slate-400 py-10 text-sm">No records found for this period.</p>}
+                  {filteredHistory.length === 0 && <p className="col-span-full text-center text-slate-400 dark:text-slate-500 py-10 text-sm">No records found for this period.</p>}
                   {filteredHistory.length > visibleCounts.history && <div className="col-span-full flex justify-center"><button onClick={() => setVisibleCounts(prev => ({ ...prev, history: prev.history + 24 }))} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold">Load more history</button></div>}
                 </div>
               </div>
@@ -1577,7 +1639,7 @@
             </div>
 
             <div className="flex justify-between items-center gap-3 flex-wrap">
-              <h3 className="font-extrabold text-slate-800 text-lg md:text-xl tracking-tight">Partner Hospitals</h3>
+              <h3 className="font-extrabold text-slate-800 dark:text-white text-lg md:text-xl tracking-tight">Partner Hospitals</h3>
               <button onClick={() => setShowAddHospital(true)} className="bg-indigo-600 active:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 border-none outline-none">
                 <i className="fas fa-hospital-user"></i> Add Hospital
               </button>
@@ -1590,25 +1652,25 @@
                 const staffCount = h.nurses ? Object.keys(h.nurses).length : 0;
                 const amcDate = h.amcStartDate || h.createdAt || h.addedAt || null;
                 return (
-                  <div key={hid} onClick={()=>setViewId(hid)} className="bg-white p-5 md:p-6 rounded-[1.5rem] shadow-sm border border-slate-200 cursor-pointer active:shadow-md active:bg-slate-50 transition-all group relative overflow-hidden">
+                  <div key={hid} onClick={()=>setViewId(hid)} className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-[1.5rem] shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer active:shadow-md active:bg-slate-50 dark:active:bg-slate-800 transition-all group relative overflow-hidden">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteHospital(hid); }}
                       className="absolute top-4 right-4 z-20 bg-red-600 text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border-none outline-none"
                     >
                       Delete
                     </button>
-                    <div className="absolute top-0 right-0 w-20 h-20 md:w-24 md:h-24 bg-blue-50 rounded-bl-full -z-0"></div>
+                    <div className="absolute top-0 right-0 w-20 h-20 md:w-24 md:h-24 bg-blue-50 dark:bg-blue-950/30 rounded-bl-full -z-0"></div>
                     <div className="relative z-10">
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-white shadow-md border border-slate-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl md:text-2xl mb-4"><i className="fas fa-hospital"></i></div>
-                      <h4 className="font-extrabold text-lg md:text-xl text-slate-800 mb-1 tracking-tight truncate">{h.name}</h4>
-                      <div className="text-[10px] md:text-xs font-bold text-slate-400 mb-2 flex items-center gap-1.5"><i className="fas fa-map-marker-alt"></i> {h.location}</div>
-                      <div className="text-[10px] md:text-xs font-bold text-slate-500 mb-4 flex items-center gap-1.5"><i className="fas fa-calendar-alt"></i> AMC From: {amcDate ? new Date(amcDate).toLocaleDateString('en-IN') : 'Not set'}</div>
-                      <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                        <div className="text-center"><div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inventory</div><div className="font-black text-sm md:text-base text-slate-700">{inventoryCount}</div></div>
-                        <div className="w-px h-5 md:h-6 bg-slate-200"></div>
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 text-blue-600 rounded-2xl flex items-center justify-center text-xl md:text-2xl mb-4"><i className="fas fa-hospital"></i></div>
+                      <h4 className="font-extrabold text-lg md:text-xl text-slate-800 dark:text-white mb-1 tracking-tight truncate">{h.name}</h4>
+                      <div className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5"><i className="fas fa-map-marker-alt"></i> {h.location}</div>
+                      <div className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-1.5"><i className="fas fa-calendar-alt"></i> AMC From: {amcDate ? new Date(amcDate).toLocaleDateString('en-IN') : 'Not set'}</div>
+                      <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="text-center"><div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inventory</div><div className="font-black text-sm md:text-base text-slate-700 dark:text-slate-200">{inventoryCount}</div></div>
+                        <div className="w-px h-5 md:h-6 bg-slate-200 dark:bg-slate-700"></div>
                         <div className="text-center"><div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active</div><div className="font-black text-sm md:text-base text-blue-600">{activeCount}</div></div>
-                        <div className="w-px h-5 md:h-6 bg-slate-200"></div>
-                        <div className="text-center"><div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Staff</div><div className="font-black text-sm md:text-base text-slate-700">{staffCount}</div></div>
+                        <div className="w-px h-5 md:h-6 bg-slate-200 dark:bg-slate-700"></div>
+                        <div className="text-center"><div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Staff</div><div className="font-black text-sm md:text-base text-slate-700 dark:text-slate-200">{staffCount}</div></div>
                       </div>
                     </div>
                   </div>
@@ -1636,14 +1698,17 @@
           <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-blue-400/20 rounded-full blur-[80px] md:blur-[100px] pointer-events-none"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] bg-indigo-400/20 rounded-full blur-[80px] md:blur-[100px] pointer-events-none"></div>
           <div className="glass-panel w-full max-w-sm md:max-w-md p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl relative z-10 mx-auto border-none outline-none">
+            <div className="flex justify-end mb-4">
+              <ThemeToggle />
+            </div>
             <div className="text-center mb-8 md:mb-10">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-blue-500/30 mb-5 md:mb-6 transform -rotate-3 transition-all"><i className="fas fa-heartbeat text-3xl md:text-4xl text-white"></i></div>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">SalineGuard</h1>
-              <p className="text-[10px] md:text-xs font-bold tracking-widest text-blue-600 uppercase mt-1.5 md:mt-2">Enterprise Access</p>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight">SalineGuard</h1>
+              <p className="text-[10px] md:text-xs font-bold tracking-widest text-blue-600 dark:text-blue-400 uppercase mt-1.5 md:mt-2">Enterprise Access</p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-              <div className="space-y-1.5"><label className="text-[9px] md:text-[10px] uppercase tracking-widest font-extrabold text-slate-500 ml-1.5 md:ml-2">Secure ID</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="username@hospital.branch" className="w-full p-3.5 md:p-4 bg-slate-100 rounded-xl md:rounded-2xl border-0 focus:bg-slate-200 outline-none transition-all font-medium text-sm md:text-base text-slate-800" required /></div>
-              <div className="space-y-1.5"><label className="text-[9px] md:text-[10px] uppercase tracking-widest font-extrabold text-slate-500 ml-1.5 md:ml-2">Password</label><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="w-full p-3.5 md:p-4 bg-slate-100 rounded-xl md:rounded-2xl border-0 focus:bg-slate-200 outline-none transition-all font-medium text-sm md:text-base text-slate-800" required /></div>
+              <div className="space-y-1.5"><label className="text-[9px] md:text-[10px] uppercase tracking-widest font-extrabold text-slate-500 dark:text-slate-400 ml-1.5 md:ml-2">Secure ID</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="username@hospital.branch" className="w-full p-3.5 md:p-4 bg-slate-100 dark:bg-slate-800 dark:text-white rounded-xl md:rounded-2xl border-0 focus:bg-slate-200 dark:focus:bg-slate-700 outline-none transition-all font-medium text-sm md:text-base text-slate-800" required /></div>
+              <div className="space-y-1.5"><label className="text-[9px] md:text-[10px] uppercase tracking-widest font-extrabold text-slate-500 dark:text-slate-400 ml-1.5 md:ml-2">Password</label><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="w-full p-3.5 md:p-4 bg-slate-100 dark:bg-slate-800 dark:text-white rounded-xl md:rounded-2xl border-0 focus:bg-slate-200 dark:focus:bg-slate-700 outline-none transition-all font-medium text-sm md:text-base text-slate-800" required /></div>
               <button disabled={loading} className="w-full bg-slate-900 active:bg-black text-white py-3.5 md:py-4 mt-2 rounded-xl md:rounded-2xl font-extrabold shadow-xl shadow-slate-900/20 active:scale-[0.98] transition-all flex justify-center items-center text-sm md:text-base border-none outline-none">{loading ? <i className="fas fa-circle-notch fa-spin"></i> : 'Authenticate'}</button>
             </form>
           </div>
