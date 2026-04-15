@@ -280,20 +280,6 @@
       </div>
     );
 
-    const = () => {
-      const [dark, setDark] = useState(document.documentElement.classList.contains('dark'));
-      const applyTheme = (nextDark) => {
-        document.documentElement.classList.toggle('dark', nextDark);
-        document.documentElement.classList.toggle('light', !nextDark);
-        try { localStorage.setItem('sg-theme', nextDark ? 'dark' : 'light'); } catch (e) {}
-        try { document.querySelector('meta[name="theme-color"]')?.setAttribute('content', nextDark ? '#020617' : '#0f172a'); } catch (e) {}
-        setDark(nextDark);
-      };
-      return (
-        
-      );
-    };
-
     const Clock = () => {
       const [t, setT] = useState(new Date());
       useEffect(() => {
@@ -329,7 +315,6 @@
               </div>
             </div>
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
-              <ThemeToggle />
               <Clock />
               <div className="hidden md:block w-px h-8 bg-slate-700/50"></div>
               <button onClick={() => setShowLogoutConfirm(true)} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shrink-0" aria-label="Logout">
